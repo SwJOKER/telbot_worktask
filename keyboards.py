@@ -19,11 +19,18 @@ def edit_data_kb():
     kb.button(text='Добавить клуб')
     return kb.as_markup(resize_keyboard=True)
 
+def edit_club_kb():
+    kb = ReplyKeyboardBuilder()
+    kb.button(text='Удалить клуб')
+    kb.button(text='Изменить имя')
+    kb.button(text='Редактировать джекпот + эквити')
+    kb.button(text='Редактировать взнос')
+    return kb.as_markup(resize_keyboard=True)
+
 def edit_union_data_kb():
     kb = ReplyKeyboardBuilder()
     kb.button(text='Новое имя')
     kb.button(text='Новый ребейт')
-    kb.button(text='Добавить клуб')
     return kb.as_markup(resize_keyboard=True)
 
 def yes_no_kb():
