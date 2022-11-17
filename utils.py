@@ -1,10 +1,12 @@
+import logging
+
 from aiogram import types
 from aiogram.types.document import Document
 
 sessions = None
 router = None
 
-def text_to_clubs(msg: str):
+def text_to_clubs_dict(msg: str):
     res = {}
     lines = msg.split('\n')
     for num, line in enumerate(lines):
@@ -13,21 +15,37 @@ def text_to_clubs(msg: str):
     return res
 
 
-def get_clubs_str(message: types.Message):
+def get_union_by_id(message: types.Message , union_id: int):
+    try:
+        union = sessions[message.from_user.id]['unions'][union_id]
+    except KeyError:
+        logging.getLogger().error(f'Указанного союза нет в словаре сессии. Index:{union_id}')
+        union = None
+    return union
+
+
+
+def get_clubs_str(message: types.Message, union_id = None):
     """Получить список клубов текущего союза в текстовом формате для сообщения"""
-    session = get_current_union(message.from_user.id)
+    if not union_id:
+        union = get_current_union(message.from_user.id)
     clubs_txt = ''
-    for club in session['clubs']:
-        clubs_txt += f'{club + 1}. {session["clubs"][club]["name"]}\n'
+    for club in union['clubs']:
+        if union["clubs"][club]['participate']:
+            mark = '🟢'
+        else:
+            mark = '🔵'
+        clubs_txt += f'{mark}{club + 1}. {union["clubs"][club]["name"]}\n'
     return clubs_txt
 
 
 async def get_clubs_from_source(message: types.Message):
     session = get_current_union(message.from_user.id)
     if message.document:
+        print(message.document)
         clubs = await parse_doc(message.document)
     else:
-        clubs = text_to_clubs(message.text)
+        clubs = text_to_clubs_dict(message.text)
     session['clubs'] = clubs
 
 
@@ -55,12 +73,22 @@ async def parse_doc(document: Document):
 
 
 def get_current_union(user_id):
+    union = None
     index = sessions[user_id]['current']
-    try:
-        union = sessions[user_id]['unions'][index]
-    except KeyError:
-        sessions[user_id]['unions'][0] = {}
-        union = sessions[user_id]['unions'][index]
+    union = sessions[user_id]['unions'][index]
+    return union
+
+
+def make_new_union(user_id):
+    index = sessions[user_id].get('current', -1)
+    if index != -1:
+        index += 1
+        sessions[user_id]['current'] = index
+    else:
+        index = 0
+        sessions[user_id]['current'] = index
+    sessions[user_id]['unions'][index] = {}
+    union = sessions[user_id]['unions'][index]
     return union
 
 
@@ -79,8 +107,10 @@ def get_active_clubs(message):
 
 
 def get_unions_list(message):
-    user = sessions[message.from_user.id]
-    msg = 'Список союзов:\n'
-    for union in user['unions']:
-        msg += f"Name: {union['name']}. Rebate: {union['rebate']}.\n"
+    session = sessions[message.from_user.id]
+    unions = session['unions']
+    msg = '<b>Список союзов:</b>\n'
+    for union_id in sorted(unions):
+        union = unions[union_id]
+        msg += f"{union_id + 1}. <b>{union['name']}</b> Ребейт: {union['rebate']}.\n"
     return msg
