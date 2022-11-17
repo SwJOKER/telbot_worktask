@@ -1,12 +1,13 @@
 import logging
-
+import os
 from aiogram import types
 from aiogram.types.document import Document
+from typing import Dict
 
 sessions = None
 router = None
 
-def text_to_clubs_dict(msg: str):
+def text_to_clubs_dict(msg: str) -> Dict:
     res = {}
     lines = msg.split('\n')
     for num, line in enumerate(lines):
@@ -15,7 +16,7 @@ def text_to_clubs_dict(msg: str):
     return res
 
 
-def get_union_by_id(message: types.Message , union_id: int):
+def get_union_by_id(message: types.Message , union_id: int) -> Dict:
     try:
         union = sessions[message.from_user.id]['unions'][union_id]
     except KeyError:
@@ -25,7 +26,7 @@ def get_union_by_id(message: types.Message , union_id: int):
 
 
 
-def get_clubs_str(message: types.Message, union_id = None):
+def get_clubs_str(message: types.Message, union_id = None) -> str:
     """Получить список клубов текущего союза в текстовом формате для сообщения"""
     if not union_id:
         union = get_current_union(message.from_user.id)
@@ -40,10 +41,9 @@ def get_clubs_str(message: types.Message, union_id = None):
     return clubs_txt
 
 
-async def get_clubs_from_source(message: types.Message):
+async def get_clubs_from_source(message: types.Message) -> Dict:
     session = get_current_union(message.from_user.id)
     if message.document:
-        print(message.document)
         clubs = await parse_doc(message.document)
     else:
         clubs = text_to_clubs_dict(message.text)
@@ -58,7 +58,7 @@ def parse_csv(file):
     pass
 
 
-async def parse_doc(document: Document):
+async def parse_doc(document: Document) -> Dict:
     formats = ['csv', 'xls', 'xlsx']
     format = document.file_name.split('.')[-1]
     if format in formats:
@@ -70,17 +70,18 @@ async def parse_doc(document: Document):
             res = parse_excel(file_path)
         else:
             res = parse_csv
+        os.remove(file_path)
         return res
 
 
-def get_current_union(user_id):
+def get_current_union(user_id) -> Dict:
     union = None
     index = sessions[user_id]['current']
     union = sessions[user_id]['unions'][index]
     return union
 
 
-def make_new_union(user_id):
+def make_new_union(user_id) -> Dict:
     index = sessions[user_id].get('current', -1)
     if index != -1:
         index = max(sessions[user_id]['unions']) + 1
@@ -93,7 +94,7 @@ def make_new_union(user_id):
     return union
 
 
-def set_active_clubs(message):
+def set_active_clubs(message) -> None:
     """Установить флаг участия в dp"""
     indexes = message.text.split(' ')
     union = get_current_union(message.from_user.id)
@@ -105,7 +106,7 @@ def set_active_clubs(message):
 
 
 
-def get_unions_list(message):
+def get_unions_info(message) -> Dict:
     session = sessions[message.from_user.id]
     unions = session['unions']
     msg = '<b>Список союзов:</b>\n'

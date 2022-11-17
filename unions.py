@@ -11,3 +11,7 @@ class Club:
     jackpot: int
     comission: float
     name: str
+
+@dataclass
+class User:
+    user_id: str

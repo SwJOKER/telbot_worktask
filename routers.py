@@ -1,16 +1,16 @@
 import logging
-import os
-
+import keyboards
 import utils
 from states import RouterStates
+from utils import get_unions_info, get_current_union, get_clubs_str, get_clubs_from_source
+from strings import *
+import db
+
+
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
-from aiogram.types.document import Document
-import keyboards
-from utils import get_unions_list, get_current_union, get_clubs_str, get_clubs_from_source, parse_excel, parse_csv
-from strings import *
 from aiogram.types import FSInputFile
 
 
@@ -18,22 +18,6 @@ router = Router()
 sessions = {}
 utils.router = router
 utils.sessions = sessions
-
-
-async def parse_document(document: Document):
-    formats = ['csv', 'xls', 'xlsx']
-    file_format = document.file_name.split('.')[-1]
-    if file_format in formats:
-        file = await router.bot.get_file(document.file_id)
-        srv_file_path = file.file_path
-        file_path = '1.xls'
-        await router.bot.download_file(srv_file_path, file_path)
-        if file_format in ['xls', 'xlsx']:
-            res = parse_excel(file_path)
-        else:
-            res = parse_csv
-        os.remove(file_path)
-        return res
 
 
 @router.message(Command(commands=['start']))
@@ -49,9 +33,9 @@ async def cmd_start(message: types.Message, state: FSMContext):
 @router.message(Command(commands=['list']))
 async def cmd_list(message: types.Message, state: FSMContext):
     if not sessions.get(message.from_user.id) or len(sessions[message.from_user.id]['unions']) < 1:
-        await message.answer('У вас нет данных. Для работы создайте союз командой /start')
+        await message.answer(STR_NULL_DATA)
         return
-    msg = get_unions_list(message) + '\n'
+    msg = get_unions_info(message) + '\n'
     msg += STR_INSERT_UNION_NUM
     await message.answer(msg, reply_markup=ReplyKeyboardRemove)
     await state.set_state(RouterStates.show_union)
@@ -93,7 +77,7 @@ async def new_union(message: types.Message, state: FSMContext):
 
 @router.message(RouterStates.accept_data, lambda message: message.text == STR_TRUE)
 async def accept_data(message: types.Message, state: FSMContext):
-    msg = get_unions_list(message) + '\n'
+    msg = get_unions_info(message) + '\n'
     msg += STR_INSERT_UNION_NUM
     await message.answer(msg, reply_markup=ReplyKeyboardRemove)
     await state.set_state(RouterStates.show_union)
@@ -154,7 +138,7 @@ async def change_club_name(message: types.Message, state: FSMContext):
 async def count(message: types.Message, state: FSMContext):
     agenda = FSInputFile("1.xlsx", filename="result.xlsx")
     await message.answer_document(agenda)
-    msg = get_unions_list(message) + '\n'
+    msg = get_unions_info(message) + '\n'
     msg += STR_INSERT_UNION_NUM
     await message.answer(msg, reply_markup=ReplyKeyboardRemove)
     await state.set_state(RouterStates.show_union)
