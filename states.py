@@ -12,3 +12,4 @@ class RouterStates(StatesGroup):
     editing_club_name = State()
     editing_club_delete = State()
     show_union = State()
+    add_club = State()

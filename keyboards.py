@@ -1,42 +1,53 @@
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, ReplyKeyboardMarkup
+from strings import *
+
 
 def union_options_kb():
     kb = ReplyKeyboardBuilder()
-    kb.button(text='Создать союз')
-    #kb.button(text='Добавить союз')
+    kb.button(text=STR_MAKE_UNION)
     return kb.as_markup(resize_keyboard=True)
 
 def accept_union_data_kb():
     kb = ReplyKeyboardBuilder()
-    kb.button(text='Верно')
-    kb.button(text='Редактировать')
+    kb.button(text=STR_TRUE)
+    kb.button(text=STR_EDIT)
     return kb.as_markup(resize_keyboard=True)
 
 def edit_data_kb():
     kb = ReplyKeyboardBuilder()
-    kb.button(text='Редактировать союз')
-    kb.button(text='Редактировать клуб')
-    kb.button(text='Добавить клуб')
+    kb.button(text=STR_EDIT_UNION)
+    kb.button(text=STR_EDIT_CLUB)
+    kb.button(text=STR_ADD_CLUB)
+    return kb.as_markup(resize_keyboard=True)
+
+def work_data_kb():
+    kb = ReplyKeyboardBuilder()
+    kb.button(text=STR_COUNT)
+    kb.button(text=STR_EDIT_UNION)
+    kb.button(text=STR_EDIT_CLUB)
+    kb.button(text=STR_ADD_CLUB)
     return kb.as_markup(resize_keyboard=True)
 
 def edit_club_kb():
     kb = ReplyKeyboardBuilder()
-    kb.button(text='Удалить клуб')
-    kb.button(text='Изменить имя')
-    kb.button(text='Редактировать джекпот + эквити')
-    kb.button(text='Редактировать взнос')
+    kb.button(text=STR_DELETE_CLUB)
+    kb.button(text=STR_CHANGE_NAME)
+    kb.button(text=STR_EDIT_JACKPOT)
+    kb.button(text=STR_EDIT_CONTRIBUTION)
     return kb.as_markup(resize_keyboard=True)
+
+
 
 def edit_union_data_kb():
     kb = ReplyKeyboardBuilder()
-    kb.button(text='Новое имя')
-    kb.button(text='Новый ребейт')
+    kb.button(text=STR_NEW_NAME)
+    kb.button(text=STR_NEW_REBATE)
     return kb.as_markup(resize_keyboard=True)
 
 def yes_no_kb():
     kb = ReplyKeyboardBuilder()
-    kb.button(text='Да')
-    kb.button(text='Нет')
+    kb.button(text=STR_YES)
+    kb.button(text=STR_NO)
     return kb.as_markup(resize_keyboard=True)
 
 

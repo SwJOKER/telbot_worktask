@@ -31,6 +31,7 @@ def get_clubs_str(message: types.Message, union_id = None):
         union = get_current_union(message.from_user.id)
     clubs_txt = ''
     for club in union['clubs']:
+        print(club)
         if union["clubs"][club]['participate']:
             mark = '🟢'
         else:
@@ -82,7 +83,7 @@ def get_current_union(user_id):
 def make_new_union(user_id):
     index = sessions[user_id].get('current', -1)
     if index != -1:
-        index += 1
+        index = max(sessions[user_id]['unions']) + 1
         sessions[user_id]['current'] = index
     else:
         index = 0
@@ -92,18 +93,16 @@ def make_new_union(user_id):
     return union
 
 
-def get_active_clubs(message):
-    """Получить клубы участвующие в 'дп'"""
+def set_active_clubs(message):
+    """Установить флаг участия в dp"""
     indexes = message.text.split(' ')
     union = get_current_union(message.from_user.id)
     clubs = union.get('clubs')
-    selected_clubs = {}
     for index in indexes:
         raw_index = int(index) - 1
         club = clubs[raw_index]
         club['participate'] = True
-        selected_clubs[raw_index] = club
-    return selected_clubs
+
 
 
 def get_unions_list(message):
@@ -112,5 +111,5 @@ def get_unions_list(message):
     msg = '<b>Список союзов:</b>\n'
     for union_id in sorted(unions):
         union = unions[union_id]
-        msg += f"{union_id + 1}. <b>{union['name']}</b> Ребейт: {union['rebate']}.\n"
+        msg += f"{union_id + 1} {union['name']} Ребейт: {union['rebate']}.\n"
     return msg
