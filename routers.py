@@ -4,7 +4,7 @@ import utils
 from states import RouterStates
 from utils import get_unions_info, get_current_union, get_clubs_str, get_clubs_from_source
 from strings import *
-import db
+#import db
 
 
 from aiogram import Router, types
