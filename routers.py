@@ -2,9 +2,9 @@ import logging
 import keyboards
 import utils
 from states import RouterStates
-from utils import get_unions_info, get_current_union, get_clubs_str, get_clubs_from_source
+from utils import get_unions_info, get_current_union, get_clubs_str, get_clubs_from_source,set_active_clubs
 from strings import *
-#import db
+import db
 
 
 from aiogram import Router, types
@@ -18,12 +18,14 @@ router = Router()
 sessions = {}
 utils.router = router
 utils.sessions = sessions
-
+db.check_db_exists()
 
 @router.message(Command(commands=['start']))
 async def cmd_start(message: types.Message, state: FSMContext):
-    if not sessions.get(message.from_user.id):
-        sessions[message.from_user.id] = {'unions': {}}
+    await state.clear()
+    user_id = message.from_user.id
+    if not db.get_user(user_id):
+        db.insert('users', {'id': user_id})
     await message.answer(
         STR_WELCOME, reply_markup=keyboards.union_options_kb()
     )
@@ -43,35 +45,33 @@ async def cmd_list(message: types.Message, state: FSMContext):
 
 @router.message(RouterStates.new_union)
 async def new_union(message: types.Message, state: FSMContext):
-    try:
-        union = get_current_union(message.from_user.id)
-    except KeyError:
-        union = utils.make_new_union(message.from_user.id)
-    if union.get('finished'):
-        union = utils.make_new_union(message.from_user.id)
+    data = await state.get_data()
     if message.text == STR_MAKE_UNION:
         await message.answer(STR_INSERT_TITLE, reply_markup=ReplyKeyboardRemove)
         return
-    if not union.get('name'):
-        union['name'] = message.text
+    if not data.get('name'):
+        await state.update_data(name=message.text)
         await message.answer(STR_INSERT_REBATE)
         return
-    if not union.get('rebate'):
-        union['rebate'] = message.text
+    if not data.get('rebate'):
+        await state.update_data(rebate=message.text)
         await message.answer(STR_LIST_OR_EXCEL)
         return
-    if not union.get('clubs'):
-        await get_clubs_from_source(message)
-        clubs_txt = get_clubs_str(message)
+    if not data.get('clubs'):
+        clubs = await get_clubs_from_source(message)
+        clubs_txt = get_clubs_str(clubs)
+        await state.update_data(clubs=clubs)
         await message.answer(STR_CHOICE_DP_CLUBS % clubs_txt)
         return
-    clubs = union.get('clubs')
+    clubs = data.get('clubs')
     if not any(clubs[x]['participate'] for x in clubs):
-        data = STR_CHECK_DATA % (union["name"], union["rebate"])
-        utils.set_active_clubs(message)
-        data += get_clubs_str(message)
-        union['finished'] = True
-        await message.answer(data, reply_markup=keyboards.accept_union_data_kb())
+        info = STR_CHECK_DATA % (data["name"], data["rebate"])
+        active_indexes = message.text.split(' ')
+        utils.set_active_clubs(clubs, active_indexes)
+        info += get_clubs_str(clubs)
+        db.save_union(data, message.from_user.id)
+        await message.answer(info, reply_markup=keyboards.accept_union_data_kb())
+        await state.clear()
         await state.set_state(RouterStates.accept_data)
 
 

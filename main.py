@@ -1,5 +1,4 @@
 import asyncio
-import os
 import logging
 from routers import router
 from aiogram import Bot, Dispatcher

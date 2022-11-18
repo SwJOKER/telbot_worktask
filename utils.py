@@ -2,7 +2,7 @@ import logging
 import os
 from aiogram import types
 from aiogram.types.document import Document
-from typing import Dict
+from typing import Dict, List
 
 sessions = None
 router = None
@@ -12,7 +12,7 @@ def text_to_clubs_dict(msg: str) -> Dict:
     lines = msg.split('\n')
     for num, line in enumerate(lines):
         name, percent = line.strip().split(' ')
-        res[num] = {'name': name, 'percent': percent, 'participate': False}
+        res[num] = {'name': name, 'comission': percent, 'participate': False}
     return res
 
 
@@ -26,28 +26,24 @@ def get_union_by_id(message: types.Message , union_id: int) -> Dict:
 
 
 
-def get_clubs_str(message: types.Message, union_id = None) -> str:
+def get_clubs_str(clubs: Dict) -> str:
     """Получить список клубов текущего союза в текстовом формате для сообщения"""
-    if not union_id:
-        union = get_current_union(message.from_user.id)
     clubs_txt = ''
-    for club in union['clubs']:
-        print(club)
-        if union["clubs"][club]['participate']:
+    for club in clubs:
+        if clubs[club]['participate']:
             mark = '🟢'
         else:
             mark = '🔵'
-        clubs_txt += f'{mark}{club + 1}. {union["clubs"][club]["name"]}\n'
+        clubs_txt += f'{mark}{club + 1}. {clubs[club]["name"]}\n'
     return clubs_txt
 
 
 async def get_clubs_from_source(message: types.Message) -> Dict:
-    session = get_current_union(message.from_user.id)
     if message.document:
         clubs = await parse_doc(message.document)
     else:
         clubs = text_to_clubs_dict(message.text)
-    session['clubs'] = clubs
+    return clubs
 
 
 def parse_excel(file):
@@ -94,11 +90,8 @@ def make_new_union(user_id) -> Dict:
     return union
 
 
-def set_active_clubs(message) -> None:
+def set_active_clubs(clubs: Dict, indexes: List[str]) -> None:
     """Установить флаг участия в dp"""
-    indexes = message.text.split(' ')
-    union = get_current_union(message.from_user.id)
-    clubs = union.get('clubs')
     for index in indexes:
         raw_index = int(index) - 1
         club = clubs[raw_index]

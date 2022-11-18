@@ -22,15 +22,15 @@ def insert(table: str, column_values: Dict):
 
 def get_user(user_id: int):
     cursor.execute(
-        f"SELECT user_id FROM users "
-        f"WHERE user_id={user_id}")
+        f"SELECT id FROM users "
+        f"WHERE id={user_id}")
     user = cursor.fetchall()
     return user
 
 
 def get_users_unions(user_id: int, columns: List[str] = None) -> List[Tuple]:
     if not columns:
-        columns = ['union_id', 'name', 'rebate', 'user_id']
+        columns = ['id', 'name', 'rebate', 'user_id']
     columns_joined = ", ".join(columns)
     cursor.execute(
         f"SELECT {columns_joined}  FROM unions "
@@ -44,10 +44,19 @@ def get_users_unions(user_id: int, columns: List[str] = None) -> List[Tuple]:
         result.append(dict_row)
     return result
 
+def get_last_union_id(user_id: int) -> List[Tuple]:
+    cursor.execute(
+        f"SELECT id  FROM unions "
+        f"WHERE user_id={user_id} "
+        f"ORDER BY id DESC "
+        f"LIMIT 1")
+    unions = cursor.fetchall()
+    return unions[0][0]
+
 
 def get_unions_clubs(union_id: int, columns: List[str] = None) -> List[Tuple]:
     if not columns:
-        columns = ['club_id', 'name', 'comission', 'participate', 'union_id']
+        columns = ['id', 'name', 'comission', 'participate', 'union_id']
     columns_joined = ", ".join(columns)
     cursor.execute(
         f"SELECT {columns_joined} FROM clubs "
@@ -95,9 +104,29 @@ def _init_db():
 
 def check_db_exists():
     """Проверяет, инициализирована ли БД, если нет — инициализирует"""
+    cursor.execute(("PRAGMA foreign_keys = ON"))
     cursor.execute("SELECT name FROM sqlite_master "
-                   "WHERE type='table' AND name='expense'")
+                   "WHERE type='table' AND name='users'")
     table_exists = cursor.fetchall()
     if table_exists:
         return
     _init_db()
+
+a = {'name': 'Фашизм',
+ 'rebate': '1488',
+ 'clubs':
+     {0: {'name': 'Россия', 'comission': '1', 'participate': True},
+      1: {'name': 'Россия', 'comission': '2', 'participate': False},
+      2: {'name': 'Россия', 'comission': '3', 'participate': True}}}
+
+
+def save_union(data: Dict, user_id: int):
+    insert('unions',
+           {'name': data['name'],
+            'rebate': data['rebate'],
+            'user_id':user_id})
+    union_id = get_last_union_id(user_id)
+    clubs = data['clubs'].values()
+    for club in clubs:
+        insert('clubs', club | {'union_id': union_id})
+
