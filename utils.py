@@ -4,6 +4,8 @@ from aiogram import types
 from aiogram.types.document import Document
 from typing import Dict, List
 
+from db import get_unions_clubs, get_users_unions
+
 sessions = None
 router = None
 
@@ -77,6 +79,18 @@ def get_current_union(user_id) -> Dict:
     return union
 
 
+
+def msg_union_info(union: Dict):
+    clubs = union['clubs']
+    clubs_str = get_clubs_str(clubs)
+    msg = f'Союз:\n' \
+          f'{union["name"]}\n' \
+          f'Ребейт: {union["rebate"]}\n' \
+          f'Клубы:\n' \
+          f'{clubs_str}'
+    return msg
+
+
 def make_new_union(user_id) -> Dict:
     index = sessions[user_id].get('current', -1)
     if index != -1:
@@ -99,11 +113,23 @@ def set_active_clubs(clubs: Dict, indexes: List[str]) -> None:
 
 
 
-def get_unions_info(message) -> Dict:
-    session = sessions[message.from_user.id]
-    unions = session['unions']
+def get_unions_info(unions: Dict) -> str:
     msg = '<b>Список союзов:</b>\n'
-    for union_id in sorted(unions):
+    print(unions)
+    for union_id in sorted(unions.keys()):
         union = unions[union_id]
         msg += f"{union_id + 1} {union['name']} Ребейт: {union['rebate']}.\n"
     return msg
+
+
+def get_all_unions(user_id):
+    unions_list = get_users_unions(user_id)
+    unions_dict = {}
+    for union_index, union in enumerate(unions_list):
+        unions_dict[union_index] = union
+        clubs_list = get_unions_clubs(union['id'])
+        clubs_dict = {}
+        for club_index, club in enumerate(clubs_list):
+            clubs_dict[club_index] = club
+        unions_dict[union_index]['clubs'] = clubs_dict
+    return unions_dict

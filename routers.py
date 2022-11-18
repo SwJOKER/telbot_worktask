@@ -1,8 +1,11 @@
 import logging
+from typing import Dict
+
 import keyboards
 import utils
 from states import RouterStates
-from utils import get_unions_info, get_current_union, get_clubs_str, get_clubs_from_source,set_active_clubs
+from utils import get_unions_info, get_current_union, get_clubs_str, \
+    get_clubs_from_source, msg_union_info, get_all_unions
 from strings import *
 import db
 
@@ -34,11 +37,11 @@ async def cmd_start(message: types.Message, state: FSMContext):
 
 @router.message(Command(commands=['list']))
 async def cmd_list(message: types.Message, state: FSMContext):
-    if not sessions.get(message.from_user.id) or len(sessions[message.from_user.id]['unions']) < 1:
-        await message.answer(STR_NULL_DATA)
-        return
-    msg = get_unions_info(message) + '\n'
+    await state.clear()
+    unions = utils.get_all_unions(message.from_user.id)
+    msg = get_unions_info(unions) + '\n'
     msg += STR_INSERT_UNION_NUM
+    await state.update_data(unions=unions)
     await message.answer(msg, reply_markup=ReplyKeyboardRemove)
     await state.set_state(RouterStates.show_union)
 
@@ -71,47 +74,43 @@ async def new_union(message: types.Message, state: FSMContext):
         info += get_clubs_str(clubs)
         db.save_union(data, message.from_user.id)
         await message.answer(info, reply_markup=keyboards.accept_union_data_kb())
-        await state.clear()
         await state.set_state(RouterStates.accept_data)
+
 
 
 @router.message(RouterStates.accept_data, lambda message: message.text == STR_TRUE)
 async def accept_data(message: types.Message, state: FSMContext):
-    msg = get_unions_info(message) + '\n'
+    await state.clear()
+    unions = utils.get_all_unions(message.from_user.id)
+    msg = get_unions_info(unions) + '\n'
     msg += STR_INSERT_UNION_NUM
+    await state.update_data(unions=unions)
     await message.answer(msg, reply_markup=ReplyKeyboardRemove)
     await state.set_state(RouterStates.show_union)
 
 
 @router.message(RouterStates.show_union, lambda message: message.text.isdigit())
-async def accept_data(message: types.Message, state: FSMContext):
+async def show_union_data(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     index = int(message.text) - 1
-    if index in sessions[user_id]['unions']:
-        sessions[user_id]['current'] = index
+    data = await state.get_data()
+    unions = data['unions']
+    if index in unions:
+        await state.update_data(selected_union=index)
     else:
         await message.answer(STR_WRONG_NUM)
         return
-    get_current_union(user_id)
-    msg = msg_union_info(message)
+    msg = msg_union_info(unions[index])
     await message.answer(msg, reply_markup=keyboards.work_data_kb())
     await state.set_state(RouterStates.editing)
 
 
-def msg_union_info(message):
-    union = get_current_union(message.from_user.id)
-    clubs_str = get_clubs_str(message)
-    msg = f'Союз:\n' \
-          f'{union["name"]}\n' \
-          f'Ребейт: {union["rebate"]}\n' \
-          f'Клубы:\n' \
-          f'{clubs_str}'
-    return msg
-
-
 @router.message(RouterStates.accept_data, lambda message: message.text == STR_EDIT)
-async def accept_data(message: types.Message, state: FSMContext):
-    msg = msg_union_info(message)
+async def edit_data(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    union_index = data['selected_union']
+    union = data['unions'][union_index]
+    msg = msg_union_info(union)
     await message.answer(msg, reply_markup=keyboards.edit_data_kb())
     await state.set_state(RouterStates.editing)
 
@@ -135,7 +134,7 @@ async def change_club_name(message: types.Message, state: FSMContext):
 
 
 @router.message(RouterStates.editing, lambda message: message.text == STR_COUNT)
-async def count(message: types.Message, state: FSMContext):
+async def send_file(message: types.Message, state: FSMContext):
     agenda = FSInputFile("1.xlsx", filename="result.xlsx")
     await message.answer_document(agenda)
     msg = get_unions_info(message) + '\n'
@@ -146,28 +145,33 @@ async def count(message: types.Message, state: FSMContext):
 
 @router.message(RouterStates.show_editing_club, lambda message: message.text.strip().isdigit())
 async def show_club(message: types.Message, state: FSMContext):
-    club_num = int(message.text) - 1
-    if club_num not in sessions[message.from_user.id]['unions']:
+    data = await state.get_data()
+    club_index = int(message.text) - 1
+    union_index = data['selected_union']
+    union = data['unions'][union_index]
+    clubs = union['clubs']
+    if club_index not in clubs:
         await message.answer(STR_WRONG_NUM)
         return
-    current_union_id = sessions[message.from_user.id]['current']
-    union = sessions[message.from_user.id]['unions'][current_union_id]
-    union['edit_club'] = club_num
-    club = union['clubs'][club_num]
-    answer = f'{club["name"]} {club["percent"]}'
+    await state.update_data(selected_club=club_index)
+    club = clubs[club_index]
+    answer = f'<b>Имя клуба:</b>\n'\
+            f'{club["name"]}\n<b>Комиссия:</b> {club["comission"]}'
     await message.answer(answer, reply_markup=keyboards.edit_club_kb())
     await state.set_state(RouterStates.editing_club)
 
 
 @router.message(RouterStates.editing_club, lambda message: message.text == STR_DELETE_CLUB)
 async def delete_club(message: types.Message, state: FSMContext):
-    current_union_id = sessions[message.from_user.id]['current']
-    union = sessions[message.from_user.id]['unions'][current_union_id]
-    club_id = union.get('edit_club', -1)
-    if club_id != -1:
-        del(union['clubs'][club_id])
-        del(union['edit_club'])
-    await message.answer(msg_union_info(message), reply_markup=keyboards.accept_union_data_kb())
+    data = await state.get_data()
+    union_index = data['selected_union']
+    union = data['unions'][union_index]
+    club_index = data['selected_club']
+    club = union['clubs'][club_index]
+    db.delete('clubs', club['id'])
+    data = await state.update_data(unions=get_all_unions(message.from_user.id))
+    updated_union = data['unions'][union_index]
+    await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
     await state.set_state(RouterStates.accept_data)
 
 
@@ -178,24 +182,29 @@ async def change_club_name(message: types.Message, state: FSMContext):
 
 
 @router.message(RouterStates.add_club)
-async def change_club_name(message: types.Message, state: FSMContext):
+async def add_club(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    union_index = data['selected_union']
+    union = data['unions'][union_index]
     splitted = message.text.split()
     if len(splitted) != 2:
         await message.answer('Данные не корректны, попробуйте еще раз')
         return
-    session = sessions[message.from_user.id]
-    current_union_id = session['current']
-    union = session['unions'][current_union_id]
-    new_index = max(union['clubs']) + 1
-    union['clubs'][new_index] = {}
-    union['clubs'][new_index]['name'], union['clubs'][new_index]['percent'] = splitted[0], splitted[1]
-    union['clubs'][new_index]['participate'] = True
-    await message.answer(msg_union_info(message), reply_markup=keyboards.accept_union_data_kb())
+    club = {
+        'name': splitted[0],
+        'comission': splitted[1],
+        'participate': True,
+        'union_id': union['id']
+    }
+    db.insert('clubs', club)
+    data = await state.update_data(unions=get_all_unions(message.from_user.id))
+    updated_union = data['unions'][union_index]
+    await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
     await state.set_state(RouterStates.accept_data)
 
 
 @router.message(RouterStates.editing_club_name)
-async def delete_club(message: types.Message, state: FSMContext):
+async def edit_club_name(message: types.Message, state: FSMContext):
     current_union_id = sessions[message.from_user.id]['current']
     union = sessions[message.from_user.id]['unions'][current_union_id]
     print(union.get('edit_club'))

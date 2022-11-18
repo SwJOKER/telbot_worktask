@@ -20,6 +20,7 @@ def insert(table: str, column_values: Dict):
     conn.commit()
 
 
+
 def get_user(user_id: int):
     cursor.execute(
         f"SELECT id FROM users "
@@ -129,4 +130,5 @@ def save_union(data: Dict, user_id: int):
     clubs = data['clubs'].values()
     for club in clubs:
         insert('clubs', club | {'union_id': union_id})
+
 
