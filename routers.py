@@ -36,7 +36,7 @@ async def cmd_list(message: types.Message, state: FSMContext):
     msg = get_unions_info(unions) + '\n'
     msg += STR_INSERT_UNION_NUM
     await state.update_data(unions=unions)
-    await message.answer(msg, reply_markup=ReplyKeyboardRemove)
+    await message.answer(msg, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.show_union)
 
 
@@ -44,7 +44,7 @@ async def cmd_list(message: types.Message, state: FSMContext):
 async def new_union(message: types.Message, state: FSMContext):
     data = await state.get_data()
     if message.text == STR_MAKE_UNION:
-        await message.answer(STR_INSERT_TITLE, reply_markup=ReplyKeyboardRemove)
+        await message.answer(STR_INSERT_TITLE, reply_markup=ReplyKeyboardRemove())
         return
     if not data.get('name'):
         await state.update_data(name=message.text)
@@ -78,7 +78,7 @@ async def accept_data(message: types.Message, state: FSMContext):
     msg = get_unions_info(unions) + '\n'
     msg += STR_INSERT_UNION_NUM
     await state.update_data(unions=unions)
-    await message.answer(msg, reply_markup=ReplyKeyboardRemove)
+    await message.answer(msg, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.show_union)
 
 
@@ -113,13 +113,13 @@ async def edit_data(message: types.Message, state: FSMContext):
 
 @router.message(RouterStates.editing, lambda message: message.text == STR_EDIT_CLUB)
 async def edit_data(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_CLUB_NUM, reply_markup=ReplyKeyboardRemove)
+    await message.answer(STR_INSERT_CLUB_NUM, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.show_editing_club)
 
 
 @router.message(RouterStates.editing, lambda message: message.text == STR_ADD_CLUB)
 async def change_club_name(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_NAME_COMISSION, reply_markup=ReplyKeyboardRemove)
+    await message.answer(STR_INSERT_NAME_COMISSION, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.add_club)
 
 
@@ -130,7 +130,7 @@ async def send_file(message: types.Message, state: FSMContext):
     data = await state.get_data()
     msg = get_unions_info(data['unions']) + '\n'
     msg += STR_INSERT_UNION_NUM
-    await message.answer(msg, reply_markup=ReplyKeyboardRemove)
+    await message.answer(msg, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.show_union)
 
 
@@ -161,7 +161,7 @@ async def delete_club(message: types.Message, state: FSMContext):
 
 @router.message(RouterStates.editing_club, lambda message: message.text == STR_CHANGE_NAME)
 async def change_club_name(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_NEW_NAME, reply_markup=ReplyKeyboardRemove)
+    await message.answer(STR_INSERT_NEW_NAME, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.editing_club_name)
 
 
@@ -197,13 +197,13 @@ async def edit_club_name(message: types.Message, state: FSMContext):
 
 @router.message(RouterStates.editing_union, lambda message: message.text == STR_NEW_NAME)
 async def edit_union_name(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_NEW_NAME, reply_markup=ReplyKeyboardRemove)
+    await message.answer(STR_INSERT_NEW_NAME, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.editing_union_name)
 
 
 @router.message(RouterStates.editing_union, lambda message: message.text == STR_NEW_REBATE)
 async def edit_union_rebate(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_NEW_REBATE, reply_markup=ReplyKeyboardRemove)
+    await message.answer(STR_INSERT_NEW_REBATE, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.editing_union_rebate)
 
 
