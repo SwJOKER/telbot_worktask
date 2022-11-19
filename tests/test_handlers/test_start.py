@@ -11,6 +11,7 @@ from routers import cmd_start
 from tests.utils import TEST_USER
 
 
+
 @pytest.mark.asyncio
 async def test_start_handler(storage, bot):
     message = AsyncMock()

@@ -121,14 +121,6 @@ def check_db_exists():
     _init_db()
 
 
-a = {'name': 'Фашизм',
-     'rebate': '1488',
-     'clubs':
-         {0: {'name': 'Россия', 'comission': '1', 'participate': True},
-          1: {'name': 'Россия', 'comission': '2', 'participate': False},
-          2: {'name': 'Россия', 'comission': '3', 'participate': True}}}
-
-
 def save_union(data: Dict, user_id: int):
     insert('unions',
            {'name': data['name'],
