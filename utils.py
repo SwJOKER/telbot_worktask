@@ -1,13 +1,13 @@
-import logging
 import os
 from aiogram import types
+from aiogram.fsm.context import FSMContext
 from aiogram.types.document import Document
 from typing import Dict, List
-
 from db import get_unions_clubs, get_users_unions
 
-sessions = None
+
 router = None
+
 
 def text_to_clubs_dict(msg: str) -> Dict:
     res = {}
@@ -16,16 +16,6 @@ def text_to_clubs_dict(msg: str) -> Dict:
         name, percent = line.strip().split(' ')
         res[num] = {'name': name, 'comission': percent, 'participate': False}
     return res
-
-
-def get_union_by_id(message: types.Message , union_id: int) -> Dict:
-    try:
-        union = sessions[message.from_user.id]['unions'][union_id]
-    except KeyError:
-        logging.getLogger().error(f'Указанного союза нет в словаре сессии. Index:{union_id}')
-        union = None
-    return union
-
 
 
 def get_clubs_str(clubs: Dict) -> str:
@@ -72,14 +62,6 @@ async def parse_doc(document: Document) -> Dict:
         return res
 
 
-def get_current_union(user_id) -> Dict:
-    union = None
-    index = sessions[user_id]['current']
-    union = sessions[user_id]['unions'][index]
-    return union
-
-
-
 def msg_union_info(union: Dict):
     clubs = union['clubs']
     clubs_str = get_clubs_str(clubs)
@@ -91,26 +73,12 @@ def msg_union_info(union: Dict):
     return msg
 
 
-def make_new_union(user_id) -> Dict:
-    index = sessions[user_id].get('current', -1)
-    if index != -1:
-        index = max(sessions[user_id]['unions']) + 1
-        sessions[user_id]['current'] = index
-    else:
-        index = 0
-        sessions[user_id]['current'] = index
-    sessions[user_id]['unions'][index] = {}
-    union = sessions[user_id]['unions'][index]
-    return union
-
-
 def set_active_clubs(clubs: Dict, indexes: List[str]) -> None:
     """Установить флаг участия в dp"""
     for index in indexes:
         raw_index = int(index) - 1
         club = clubs[raw_index]
         club['participate'] = True
-
 
 
 def get_unions_info(unions: Dict) -> str:
@@ -133,3 +101,17 @@ def get_all_unions(user_id):
             clubs_dict[club_index] = club
         unions_dict[union_index]['clubs'] = clubs_dict
     return unions_dict
+
+
+async def get_selected_union(state: FSMContext) -> Dict:
+    data = await state.get_data()
+    union_index = data['selected_union']
+    union = data['unions'][union_index]
+    return union
+
+
+async def get_selected_club(state: FSMContext) -> Dict:
+    data = await state.get_data()
+    union = await get_selected_union(state)
+    club_index = data['selected_club']
+    return union['clubs'][club_index]

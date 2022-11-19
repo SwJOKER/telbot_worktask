@@ -1,11 +1,13 @@
 import asyncio
 import logging
+import os
+
 from routers import router
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 
 
-TOKEN = '5726254999:AAFWfN8ZgDkQW98XCeMQD2wvqNuk0Y7rNlc'
+TOKEN = os.getenv('BotToken')
 
 async def main():
     bot = Bot(TOKEN, parse_mode='HTML')

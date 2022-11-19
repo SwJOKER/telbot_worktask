@@ -3,7 +3,6 @@ from typing import Dict, List, Tuple
 
 import sqlite3
 
-
 conn = sqlite3.connect(os.path.join("db", "unions.db"))
 cursor = conn.cursor()
 
@@ -19,6 +18,14 @@ def insert(table: str, column_values: Dict):
         values)
     conn.commit()
 
+
+def update(table: str, id, column, value):
+    cursor.execute(
+        f"UPDATE {table} "
+        f"SET {column} = ? "
+        f"WHERE id = {id}",
+        (value,))
+    conn.commit()
 
 
 def get_user(user_id: int):
@@ -44,6 +51,7 @@ def get_users_unions(user_id: int, columns: List[str] = None) -> List[Tuple]:
             dict_row[column] = row[index]
         result.append(dict_row)
     return result
+
 
 def get_last_union_id(user_id: int) -> List[Tuple]:
     cursor.execute(
@@ -72,7 +80,7 @@ def get_unions_clubs(union_id: int, columns: List[str] = None) -> List[Tuple]:
     return result
 
 
-def fetchall(table: str, columns: List[str]) -> List[Tuple]:
+def fetchall(table: str, columns: List[str]) -> List[Dict]:
     columns_joined = ", ".join(columns)
     cursor.execute(f"SELECT {columns_joined} FROM {table}")
     rows = cursor.fetchall()
@@ -113,22 +121,21 @@ def check_db_exists():
         return
     _init_db()
 
+
 a = {'name': 'Фашизм',
- 'rebate': '1488',
- 'clubs':
-     {0: {'name': 'Россия', 'comission': '1', 'participate': True},
-      1: {'name': 'Россия', 'comission': '2', 'participate': False},
-      2: {'name': 'Россия', 'comission': '3', 'participate': True}}}
+     'rebate': '1488',
+     'clubs':
+         {0: {'name': 'Россия', 'comission': '1', 'participate': True},
+          1: {'name': 'Россия', 'comission': '2', 'participate': False},
+          2: {'name': 'Россия', 'comission': '3', 'participate': True}}}
 
 
 def save_union(data: Dict, user_id: int):
     insert('unions',
            {'name': data['name'],
             'rebate': data['rebate'],
-            'user_id':user_id})
+            'user_id': user_id})
     union_id = get_last_union_id(user_id)
     clubs = data['clubs'].values()
     for club in clubs:
         insert('clubs', club | {'union_id': union_id})
-
-
