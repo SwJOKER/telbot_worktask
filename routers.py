@@ -170,7 +170,7 @@ async def add_club(message: types.Message, state: FSMContext):
     union = await get_selected_union(state)
     splitted = message.text.split()
     if len(splitted) != 2:
-        await message.answer('Данные не корректны, попробуйте еще раз')
+        await message.answer(STR_WRONG_DATA)
         return
     club = {
         'name': splitted[0],

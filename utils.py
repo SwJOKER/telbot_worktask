@@ -83,7 +83,6 @@ def set_active_clubs(clubs: Dict, indexes: List[str]) -> None:
 
 def get_unions_info(unions: Dict) -> str:
     msg = '<b>Список союзов:</b>\n'
-    print(unions)
     for union_id in sorted(unions.keys()):
         union = unions[union_id]
         msg += f"{union_id + 1} {union['name']} Ребейт: {union['rebate']}.\n"
