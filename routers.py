@@ -23,7 +23,8 @@ async def cmd_start(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     if not db.get_user(user_id):
         db.insert('users', {'id': user_id})
-    await message.answer(
+    #return для тестов
+    return await message.answer(
         STR_WELCOME, reply_markup=keyboards.union_options_kb()
     )
     await state.set_state(RouterStates.new_union)

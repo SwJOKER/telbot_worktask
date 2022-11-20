@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import os
-import db
+import sys
+
 from routers import router
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -21,6 +22,7 @@ async def main():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    print(sys.path)
     asyncio.run(main())
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

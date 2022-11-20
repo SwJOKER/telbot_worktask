@@ -9,12 +9,11 @@ ENV TZ=Europe/Moscow
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 
-COPY *.py ./
 COPY requirements.txt ./
 
 RUN pip install -r ./requirements.txt
-RUN pip install -U pip aiogram pytz && apt-get update && apt-get install sqlite3
-COPY *.py ./
+RUN pip install -U apt-get update && apt-get install sqlite3
+COPY /bot/*.py ./
 COPY createdb.sql ./
 
 ENTRYPOINT ["python", "main.py"]

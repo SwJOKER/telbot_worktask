@@ -28,13 +28,13 @@ class MockedSession(BaseSession):
     async def make_request(
         self, bot: Bot, method: TelegramMethod[TelegramType], timeout: Optional[int] = UNSET
     ) -> TelegramType:
-        self.closed = False
-        self.requests.append(method.build_request(bot))
-        response: Response[TelegramType] = self.responses.pop()
-        self.check_response(
-            method=method, status_code=response.error_code, content=response.json()
-        )
-        return response.result  # type: ignore
+        # self.closed = False
+        # self.requests.append(method.build_request(bot))
+        # response: Response[TelegramType] = self.responses.pop()
+        # self.check_response(
+        #     method=method, status_code=response.error_code, content=response.json()
+        # )
+        return method #response.result  # type: ignore
 
     async def stream_content(
         self, url: str, timeout: int, chunk_size: int

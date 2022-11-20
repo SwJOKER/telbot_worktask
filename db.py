@@ -2,6 +2,10 @@ import os
 from typing import Dict, List, Tuple
 
 import sqlite3
+
+db_dir = 'db'
+if not os.path.exists(db_dir):
+    os.mkdir(db_dir)
 conn = sqlite3.connect(os.path.join("db", "unions.db"))
 cursor = conn.cursor()
 
