@@ -13,7 +13,7 @@ COPY requirements.txt ./
 
 RUN pip install -r ./requirements.txt
 RUN pip install -U apt-get update && apt-get install sqlite3
-COPY /bot/*.py ./
+COPY *.py ./
 COPY createdb.sql ./
 
 ENTRYPOINT ["python", "main.py"]
