@@ -85,7 +85,7 @@ def get_unions_info(unions: Dict) -> str:
     msg = '<b>Список союзов:</b>\n'
     for union_id in sorted(unions.keys()):
         union = unions[union_id]
-        msg += f"{union_id + 1} {union['name']} Ребейт: {union['rebate']}.\n"
+        msg += f"{union_id + 1} {union['name']} Ребейт: {union['rebate']}.\n\n"
     return msg
 
 

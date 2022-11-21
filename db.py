@@ -108,7 +108,7 @@ def get_cursor():
 
 def _init_db():
     """Инициализирует БД"""
-    with open("createdb.sql", "r") as f:
+    with open("createdb.sql", "r", encoding='UTF-8') as f:
         sql = f.read()
     cursor.executescript(sql)
     conn.commit()

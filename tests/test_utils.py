@@ -5,7 +5,7 @@ from aiogram.types import User, Chat, Message, CallbackQuery, Update
 import datetime
 
 TEST_USER = User(
-    id=123,
+    id=133191215,
     is_bot=False,
     first_name='Testing',
     last_name='User',
@@ -43,7 +43,7 @@ TEST_CHAT = Chat(
     location = None
 )
 
-async def get_message(text: str):
+def get_message(text: str):
     return Message(from_user=TEST_USER,
                       message_id = 1,
                       date = str(datetime.datetime.now().timestamp()),
@@ -51,7 +51,10 @@ async def get_message(text: str):
                       text = text,
                     )
 
-async def get_update(message: Message, callback: CallbackQuery = None):
+def get_update(message: Message, callback: CallbackQuery = None):
     return Update(
         update_id = 26,
         message = message)
+
+
+

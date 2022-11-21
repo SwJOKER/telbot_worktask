@@ -24,10 +24,10 @@ async def cmd_start(message: types.Message, state: FSMContext):
     if not db.get_user(user_id):
         db.insert('users', {'id': user_id})
     #return для тестов
+    await state.set_state(RouterStates.new_union)
     return await message.answer(
         STR_WELCOME, reply_markup=keyboards.union_options_kb()
     )
-    await state.set_state(RouterStates.new_union)
 
 
 @router.message(Command(commands=['list']))
@@ -37,30 +37,26 @@ async def cmd_list(message: types.Message, state: FSMContext):
     msg = get_unions_info(unions) + '\n'
     msg += STR_INSERT_UNION_NUM
     await state.update_data(unions=unions)
-    await message.answer(msg, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.show_union)
+    return await message.answer(msg, reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(RouterStates.new_union)
 async def new_union(message: types.Message, state: FSMContext):
     data = await state.get_data()
     if message.text == STR_MAKE_UNION:
-        await message.answer(STR_INSERT_TITLE, reply_markup=ReplyKeyboardRemove())
-        return
+        return await message.answer(STR_INSERT_TITLE, reply_markup=ReplyKeyboardRemove())
     if not data.get('name'):
-        await state.update_data(name=message.text)
-        await message.answer(STR_INSERT_REBATE)
-        return
+        await state.update_data(name=message.text.strip())
+        return await message.answer(STR_INSERT_REBATE)
     if not data.get('rebate'):
-        await state.update_data(rebate=message.text)
-        await message.answer(STR_LIST_OR_EXCEL)
-        return
+        await state.update_data(rebate=message.text.strip())
+        return await message.answer(STR_LIST_OR_EXCEL)
     if not data.get('clubs'):
         clubs = await get_clubs_from_source(message)
         clubs_txt = get_clubs_str(clubs)
         await state.update_data(clubs=clubs)
-        await message.answer(STR_CHOICE_DP_CLUBS % clubs_txt)
-        return
+        return await message.answer(STR_CHOICE_DP_CLUBS % clubs_txt)
     clubs = data.get('clubs')
     if not any(clubs[x]['participate'] for x in clubs):
         info = STR_CHECK_DATA % (data["name"], data["rebate"])
@@ -68,19 +64,21 @@ async def new_union(message: types.Message, state: FSMContext):
         utils.set_active_clubs(clubs, active_indexes)
         info += get_clubs_str(clubs)
         db.save_union(data, message.from_user.id)
-        await message.answer(info, reply_markup=keyboards.accept_union_data_kb())
         await state.set_state(RouterStates.accept_data)
+        return await message.answer(info, reply_markup=keyboards.accept_union_data_kb())
 
 
 @router.message(RouterStates.accept_data, lambda message: message.text == STR_TRUE)
 async def accept_data(message: types.Message, state: FSMContext):
     await state.clear()
     unions = utils.get_all_unions(message.from_user.id)
-    msg = get_unions_info(unions) + '\n'
+    msg = get_unions_info(unions)
     msg += STR_INSERT_UNION_NUM
     await state.update_data(unions=unions)
-    await message.answer(msg, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.show_union)
+    return await message.answer(msg, reply_markup=ReplyKeyboardRemove())
+
+
 
 
 @router.message(RouterStates.show_union, lambda message: message.text.isdigit())
@@ -91,37 +89,36 @@ async def show_union_data(message: types.Message, state: FSMContext):
     if index in unions:
         await state.update_data(selected_union=index)
     else:
-        await message.answer(STR_WRONG_NUM)
-        return
+        return await message.answer(STR_WRONG_NUM)
     msg = msg_union_info(unions[index])
-    await message.answer(msg, reply_markup=keyboards.work_data_kb())
     await state.set_state(RouterStates.editing)
+    return await message.answer(msg, reply_markup=keyboards.work_data_kb())
 
 
 @router.message(RouterStates.accept_data, lambda message: message.text == STR_EDIT)
 async def edit_data(message: types.Message, state: FSMContext):
     union = await get_selected_union(state)
     msg = msg_union_info(union)
-    await message.answer(msg, reply_markup=keyboards.edit_data_kb())
     await state.set_state(RouterStates.editing)
+    return await message.answer(msg, reply_markup=keyboards.edit_data_kb())
 
 
 @router.message(RouterStates.editing, lambda message: message.text == STR_EDIT_UNION)
-async def edit_data(message: types.Message, state: FSMContext):
-    await message.answer(STR_CHOICE_OPTION, reply_markup=keyboards.edit_union_data_kb())
+async def edit_union_menu(message: types.Message, state: FSMContext):
     await state.set_state(RouterStates.editing_union)
+    return await message.answer(STR_CHOICE_OPTION, reply_markup=keyboards.edit_union_data_kb())
 
 
 @router.message(RouterStates.editing, lambda message: message.text == STR_EDIT_CLUB)
-async def edit_data(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_CLUB_NUM, reply_markup=ReplyKeyboardRemove())
+async def edit_club_menu(message: types.Message, state: FSMContext):
     await state.set_state(RouterStates.show_editing_club)
+    return await message.answer(STR_INSERT_CLUB_NUM, reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(RouterStates.editing, lambda message: message.text == STR_ADD_CLUB)
 async def change_club_name(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_NAME_COMISSION, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.add_club)
+    return await message.answer(STR_INSERT_NAME_COMISSION, reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(RouterStates.editing, lambda message: message.text == STR_COUNT)
@@ -129,7 +126,7 @@ async def send_file(message: types.Message, state: FSMContext):
     agenda = FSInputFile("1.xlsx", filename="result.xlsx")
     await message.answer_document(agenda)
     data = await state.get_data()
-    msg = get_unions_info(data['unions']) + '\n'
+    msg = get_unions_info(data['unions'])
     msg += STR_INSERT_UNION_NUM
     await message.answer(msg, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.show_union)
@@ -141,13 +138,13 @@ async def show_club(message: types.Message, state: FSMContext):
     union = await get_selected_union(state)
     clubs = union['clubs']
     if club_index not in clubs:
-        await message.answer(STR_WRONG_NUM)
-        return
+        return await message.answer(STR_WRONG_NUM)
+
     await state.update_data(selected_club=club_index)
     club = clubs[club_index]
     answer = STR_SHOW_CLUB % (club['name'], club['comission'])
-    await message.answer(answer, reply_markup=keyboards.edit_club_kb())
     await state.set_state(RouterStates.editing_club)
+    return await message.answer(answer, reply_markup=keyboards.edit_club_kb())
 
 
 @router.message(RouterStates.editing_club, lambda message: message.text == STR_DELETE_CLUB)
