@@ -20,9 +20,8 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
-# Press the green button in the gutter to run the script.
+
 if __name__ == '__main__':
-    print(sys.path)
     asyncio.run(main())
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
