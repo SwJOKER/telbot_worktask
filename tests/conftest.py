@@ -1,12 +1,16 @@
 import asyncio
+import os
+import sys
 
 import pytest
 import pytest_asyncio
 from aiogram import Dispatcher, Bot
 from aiogram.fsm.storage.memory import MemoryStorage
 
+import db
 from routers import router
 from tests.mocked_bot import MockedBot
+import shutil
 
 
 @pytest_asyncio.fixture(scope='session')
@@ -42,5 +46,16 @@ async def dispatcher():
 @pytest.fixture(scope="session")
 def event_loop():
     return asyncio.get_event_loop()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def db_close():
+    try:
+        yield db.check_db_exists()
+    finally:
+        db.conn.close()
+        shutil.rmtree(db.db_dir)
+
+
 
 

@@ -1,8 +1,15 @@
 import datetime
 
 import datetime
+
+from aiogram.fsm.storage.base import StorageKey
+from aiogram.methods import SendMessage
 from aiogram.types import User, Chat, Message, CallbackQuery, Update
 import datetime
+
+import keyboards
+from states import RouterStates
+from strings import STR_CHOOSE_PROPER_ANSWER
 
 TEST_USER = User(
     id=133191215,
@@ -57,4 +64,15 @@ def get_update(message: Message, callback: CallbackQuery = None):
         message = message)
 
 
+async def wrong_answer_test(router_state, dispatcher, bot):
+    key = StorageKey(bot.id, TEST_CHAT.id, user_id=TEST_USER.id)
+    bot_key = {'bot': bot, 'key': key}
+    message = get_message('randomstr...')
+    await dispatcher.storage.set_state(**bot_key, state=router_state)
+    result: SendMessage = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    state = await dispatcher.storage.get_state(**bot_key)
+    assert isinstance(result, SendMessage)
+    assert state == router_state
+    assert result.text == STR_CHOOSE_PROPER_ANSWER
+    assert result.reply_markup == keyboards.edit_union_data_kb()
 

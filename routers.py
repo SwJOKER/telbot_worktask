@@ -23,7 +23,6 @@ async def cmd_start(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     if not db.get_user(user_id):
         db.insert('users', {'id': user_id})
-    #return для тестов
     await state.set_state(RouterStates.new_union)
     return await message.answer(
         STR_WELCOME, reply_markup=keyboards.union_options_kb()
@@ -79,8 +78,6 @@ async def accept_data(message: types.Message, state: FSMContext):
     return await message.answer(msg, reply_markup=ReplyKeyboardRemove())
 
 
-
-
 @router.message(RouterStates.show_union, lambda message: message.text.isdigit())
 async def show_union_data(message: types.Message, state: FSMContext):
     index = int(message.text) - 1
@@ -128,8 +125,8 @@ async def send_file(message: types.Message, state: FSMContext):
     data = await state.get_data()
     msg = get_unions_info(data['unions'])
     msg += STR_INSERT_UNION_NUM
-    await message.answer(msg, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.show_union)
+    return await message.answer(msg, reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(RouterStates.show_editing_club, lambda message: message.text.strip().isdigit())
@@ -153,14 +150,14 @@ async def delete_club(message: types.Message, state: FSMContext):
     db.delete('clubs', club['id'])
     await state.update_data(unions=get_all_unions(message.from_user.id))
     updated_union = await get_selected_union(state)
-    await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
     await state.set_state(RouterStates.accept_data)
+    return await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
 
 
 @router.message(RouterStates.editing_club, lambda message: message.text == STR_CHANGE_NAME)
 async def change_club_name(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_NEW_NAME, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.editing_club_name)
+    return await message.answer(STR_INSERT_NEW_NAME, reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(RouterStates.add_club)
@@ -168,8 +165,7 @@ async def add_club(message: types.Message, state: FSMContext):
     union = await get_selected_union(state)
     splitted = message.text.split()
     if len(splitted) != 2:
-        await message.answer(STR_WRONG_DATA)
-        return
+        return await message.answer(STR_WRONG_DATA)
     club = {
         'name': splitted[0],
         'comission': splitted[1],
@@ -179,8 +175,8 @@ async def add_club(message: types.Message, state: FSMContext):
     db.insert('clubs', club)
     await state.update_data(unions=get_all_unions(message.from_user.id))
     updated_union = await get_selected_union(state)
-    await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
     await state.set_state(RouterStates.accept_data)
+    return await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
 
 
 @router.message(RouterStates.editing_club_name)
@@ -189,20 +185,20 @@ async def edit_club_name(message: types.Message, state: FSMContext):
     db.update(table='clubs', id=club['id'], column='name', value=message.text)
     await state.update_data(unions=get_all_unions(message.from_user.id))
     updated_union = await get_selected_union(state)
-    await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
     await state.set_state(RouterStates.accept_data)
+    return await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
 
 
 @router.message(RouterStates.editing_union, lambda message: message.text == STR_NEW_NAME)
 async def edit_union_name(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_NEW_NAME, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.editing_union_name)
+    return await message.answer(STR_INSERT_NEW_NAME, reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(RouterStates.editing_union, lambda message: message.text == STR_NEW_REBATE)
 async def edit_union_rebate(message: types.Message, state: FSMContext):
-    await message.answer(STR_INSERT_NEW_REBATE, reply_markup=ReplyKeyboardRemove())
     await state.set_state(RouterStates.editing_union_rebate)
+    return await message.answer(STR_INSERT_NEW_REBATE, reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(RouterStates.editing_union_rebate)
@@ -211,25 +207,25 @@ async def edit_union_rebate_set(message: types.Message, state: FSMContext):
     db.update(table='unions', id=union['id'], column='rebate', value=message.text)
     await state.update_data(unions=get_all_unions(message.from_user.id))
     updated_union = await get_selected_union(state)
-    await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
     await state.set_state(RouterStates.accept_data)
+    return await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
 
 
 @router.message(RouterStates.editing_union_name)
-async def edit_union_name(message: types.Message, state: FSMContext):
+async def edit_union_name_set(message: types.Message, state: FSMContext):
     union = await get_selected_union(state)
     db.update(table='unions', id=union['id'], column='name', value=message.text)
     await state.update_data(unions=get_all_unions(message.from_user.id))
     updated_union = await get_selected_union(state)
-    await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
     await state.set_state(RouterStates.accept_data)
+    return await message.answer(msg_union_info(updated_union), reply_markup=keyboards.accept_union_data_kb())
 
 
 @router.message(RouterStates.editing)
-async def edit_data(message: types.Message):
-    await message.answer(STR_CHOOSE_PROPER_ANSWER, reply_markup=keyboards.edit_union_data_kb())
+async def edit_wrong_answer(message: types.Message):
+    return await message.answer(STR_CHOOSE_PROPER_ANSWER, reply_markup=keyboards.edit_union_data_kb())
 
 
 @router.message(RouterStates.editing_union)
-async def edit_data(message: types.Message):
-    await message.answer(STR_CHOOSE_PROPER_ANSWER, reply_markup=keyboards.edit_union_data_kb())
+async def edit_union_wrong_answer(message: types.Message):
+    return await message.answer(STR_CHOOSE_PROPER_ANSWER, reply_markup=keyboards.edit_union_data_kb())

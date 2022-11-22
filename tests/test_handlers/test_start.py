@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from aiogram import Dispatcher, Bot
 
@@ -9,14 +7,11 @@ import db
 import keyboards
 import utils
 from states import RouterStates
-from tests.test_utils import TEST_USER, TEST_CHAT, get_message, get_update
+from tests.test_utils import TEST_USER, TEST_CHAT, get_message, get_update, wrong_answer_test
 from strings import *
 import routers
 from utils import get_clubs_from_source, get_clubs_str, set_active_clubs
 from random import choice
-
-
-db.check_db_exists()
 
 
 @pytest.mark.asyncio
@@ -80,7 +75,6 @@ async def test_new_union(dispatcher: Dispatcher, bot: Bot):
     # Список клубов или файл
     message = get_message('Клуб 1\nКлуб 2')
     clubs = await get_clubs_from_source(message)
-    clubs_txt = get_clubs_str(clubs)
     result: SendMessage = await routers.new_union(message, state)
     data = await dispatcher.storage.get_data(bot=bot, key=key)
     assert isinstance(result, SendMessage)
@@ -231,24 +225,170 @@ async def test_show_club(dispatcher: Dispatcher, bot: Bot):
     assert result.reply_markup == keyboards.edit_club_kb()
 
 
+@pytest.mark.asyncio
+async def test_delete_club(dispatcher: Dispatcher, bot: Bot):
+    key = StorageKey(bot.id, TEST_CHAT.id, user_id=TEST_USER.id)
+    bot_key = {'bot': bot, 'key': key}
+    clubs = {0: {'name': 'TestClub1', 'comission': '1', 'participate': False},
+             1: {'name': 'DeletingClub2', 'comission': '2', 'participate': False}}
+    union = {'name': 'test_delete',
+             'rebate': 1,
+             'clubs': clubs
+             }
+    db.save_union(union, user_id=TEST_USER.id)
+    unions = utils.get_all_unions(TEST_USER.id)
+    index = max(unions)
+    test_data = {'unions': unions, 'selected_union': index, 'selected_club': 1}
+    message = get_message(STR_DELETE_CLUB)
+    await dispatcher.storage.set_state(**bot_key, state=RouterStates.editing_club)
+    await dispatcher.storage.set_data(**bot_key, data=test_data)
+    result: SendMessage = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    assert isinstance(result, SendMessage)
+    unions = utils.get_all_unions(TEST_USER.id)
+    union = unions[index]
+    assert not union['clubs'].get(1)
+    assert result.text == utils.msg_union_info(union)
 
 
+@pytest.mark.asyncio
+async def test_change_club_name(dispatcher: Dispatcher, bot: Bot):
+    key = StorageKey(bot.id, TEST_CHAT.id, user_id=TEST_USER.id)
+    await dispatcher.storage.set_state(bot=bot, key=key, state=RouterStates.editing_club)
+    message = get_message(STR_CHANGE_NAME)
+    result: SendMessage = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    assert isinstance(result, SendMessage)
+    assert result.text == STR_INSERT_NEW_NAME
+    assert result.reply_markup.remove_keyboard
 
 
+@pytest.mark.asyncio
+async def test_add_club(dispatcher: Dispatcher, bot: Bot):
+    key = StorageKey(bot.id, TEST_CHAT.id, user_id=TEST_USER.id)
+    bot_key = {'bot': bot, 'key': key}
+    unions = utils.get_all_unions(TEST_USER.id)
+    test_union_index = 0
+    test_data = {'unions': unions, 'selected_union': test_union_index}
+    await dispatcher.storage.set_state(**bot_key, state=RouterStates.add_club)
+    await dispatcher.storage.set_data(**bot_key, data=test_data)
+    # send wrong data
+    message = get_message('Test_club 12 3')
+    result = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    assert isinstance(result, SendMessage)
+    assert result.text == STR_WRONG_DATA
+    # send proper data
+    new_club_name = 'Test_club'
+    new_club_comission = 12
+    message = get_message(' '.join([new_club_name, str(new_club_comission)]))
+    result = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    state_data = await dispatcher.storage.get_data(**bot_key)
+    unions = state_data['unions']
+    clubs = unions[test_union_index]['clubs']
+    added_club = unions[test_union_index]['clubs'][max(clubs)]
+    assert isinstance(result, SendMessage)
+    assert result.reply_markup == keyboards.accept_union_data_kb()
+    assert added_club['name'] == new_club_name
+    assert added_club['comission'] == new_club_comission
 
 
+@pytest.mark.asyncio
+async def test_edit_club_name(dispatcher: Dispatcher, bot: Bot):
+    key = StorageKey(bot.id, TEST_CHAT.id, user_id=TEST_USER.id)
+    bot_key = {'bot': bot, 'key': key}
+    await dispatcher.storage.set_state(**bot_key, state=RouterStates.editing_club_name)
+    test_union_index = 0
+    test_club_index = 0
+    unions = utils.get_all_unions(TEST_USER.id)
+    test_data = {'unions': unions, 'selected_union': test_union_index, 'selected_club': test_club_index}
+    await dispatcher.storage.set_data(**bot_key, data=test_data)
+    new_name = 'newname'
+    message = get_message(new_name)
+    result = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    state_data = await dispatcher.storage.get_data(**bot_key)
+    state = await dispatcher.storage.get_state(**bot_key)
+    club_in_state = state_data['unions'][test_union_index]['clubs'][test_club_index]
+    club_in_db = utils.get_all_unions(TEST_USER.id)[test_union_index]['clubs'][test_club_index]
+    assert isinstance(result, SendMessage)
+    assert club_in_state['name'] == club_in_db['name'] == new_name
+    assert state == RouterStates.accept_data
+    assert result.text == utils.msg_union_info(state_data['unions'][test_union_index])
+    assert result.reply_markup == keyboards.accept_union_data_kb()
 
 
+@pytest.mark.asyncio
+async def test_edit_union_name(dispatcher: Dispatcher, bot: Bot):
+    key = StorageKey(bot.id, TEST_CHAT.id, user_id=TEST_USER.id)
+    bot_key = {'bot': bot, 'key': key}
+    await dispatcher.storage.set_state(**bot_key, state=RouterStates.editing_union)
+    message = get_message(STR_NEW_NAME)
+    result: SendMessage = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    state = await dispatcher.storage.get_state(**bot_key)
+    assert isinstance(result, SendMessage)
+    assert state == RouterStates.editing_union_name
+    assert result.text == STR_INSERT_NEW_NAME
+    assert result.reply_markup.remove_keyboard
 
 
+@pytest.mark.asyncio
+async def test_edit_union_rebate(dispatcher: Dispatcher, bot: Bot):
+    key = StorageKey(bot.id, TEST_CHAT.id, user_id=TEST_USER.id)
+    bot_key = {'bot': bot, 'key': key}
+    await dispatcher.storage.set_state(**bot_key, state=RouterStates.editing_union)
+    message = get_message(STR_NEW_REBATE)
+    result: SendMessage = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    state = await dispatcher.storage.get_state(**bot_key)
+    assert isinstance(result, SendMessage)
+    assert state == RouterStates.editing_union_rebate
+    assert result.text == STR_INSERT_NEW_REBATE
+    assert result.reply_markup.remove_keyboard
 
 
+@pytest.mark.asyncio
+async def test_edit_union_rebate_set(dispatcher: Dispatcher, bot: Bot):
+    key = StorageKey(bot.id, TEST_CHAT.id, user_id=TEST_USER.id)
+    bot_key = {'bot': bot, 'key': key}
+    await dispatcher.storage.set_state(**bot_key, state=RouterStates.editing_union_rebate)
+    unions = utils.get_all_unions(TEST_USER.id)
+    test_union_index = 1
+    test_data = {'unions': unions, 'selected_union': test_union_index}
+    await dispatcher.storage.set_data(**bot_key, data=test_data)
+    new_rebate = 666
+    message = get_message(str(new_rebate))
+    result: SendMessage = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    state_union_rebate = (await dispatcher.storage.get_data(**bot_key))['unions'][test_union_index]['rebate']
+    db_union_rebate = utils.get_all_unions(TEST_USER.id)[test_union_index]['rebate']
+    state = await dispatcher.storage.get_state(**bot_key)
+    assert isinstance(result, SendMessage)
+    assert result.reply_markup == keyboards.accept_union_data_kb()
+    assert new_rebate == db_union_rebate == state_union_rebate
+    assert state == RouterStates.accept_data
 
 
+@pytest.mark.asyncio
+async def test_edit_union_name_set(dispatcher: Dispatcher, bot: Bot):
+    key = StorageKey(bot.id, TEST_CHAT.id, user_id=TEST_USER.id)
+    bot_key = {'bot': bot, 'key': key}
+    await dispatcher.storage.set_state(**bot_key, state=RouterStates.editing_union_name)
+    unions = utils.get_all_unions(TEST_USER.id)
+    test_union_index = 1
+    test_data = {'unions': unions, 'selected_union': test_union_index}
+    await dispatcher.storage.set_data(**bot_key, data=test_data)
+    new_name = 'new_name'
+    message = get_message(new_name)
+    result: SendMessage = await dispatcher.feed_update(bot=bot, update=get_update(message))
+    state_union_name = (await dispatcher.storage.get_data(**bot_key))['unions'][test_union_index]['name']
+    db_union_name = utils.get_all_unions(TEST_USER.id)[test_union_index]['name']
+    state = await dispatcher.storage.get_state(**bot_key)
+    assert isinstance(result, SendMessage)
+    assert result.reply_markup == keyboards.accept_union_data_kb()
+    assert new_name == db_union_name == state_union_name
+    assert state == RouterStates.accept_data
 
 
+@pytest.mark.asyncio
+async def test_edit_wrong_answer(dispatcher: Dispatcher, bot: Bot):
+    await wrong_answer_test(RouterStates.editing, dispatcher=dispatcher, bot=bot)
 
 
-
-
-
+@pytest.mark.asyncio
+async def test_edit_union_wrong_answer(dispatcher: Dispatcher, bot: Bot):
+    await wrong_answer_test(RouterStates.editing_union, dispatcher=dispatcher, bot=bot)
