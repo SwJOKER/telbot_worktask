@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 from aiogram import Dispatcher, Bot
 

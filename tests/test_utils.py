@@ -1,14 +1,9 @@
-import datetime
-
-import datetime
-
 from aiogram.fsm.storage.base import StorageKey
 from aiogram.methods import SendMessage
 from aiogram.types import User, Chat, Message, CallbackQuery, Update
 import datetime
 
 import keyboards
-from states import RouterStates
 from strings import STR_CHOOSE_PROPER_ANSWER
 
 TEST_USER = User(
@@ -50,6 +45,7 @@ TEST_CHAT = Chat(
     location = None
 )
 
+
 def get_message(text: str):
     return Message(from_user=TEST_USER,
                       message_id = 1,
@@ -57,6 +53,7 @@ def get_message(text: str):
                       chat = TEST_CHAT,
                       text = text,
                     )
+
 
 def get_update(message: Message, callback: CallbackQuery = None):
     return Update(

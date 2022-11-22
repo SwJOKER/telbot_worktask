@@ -1,6 +1,5 @@
 import os
 from typing import Dict, List, Tuple
-
 import sqlite3
 
 db_dir = 'db'
